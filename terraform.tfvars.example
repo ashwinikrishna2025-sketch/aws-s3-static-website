@@ -1,0 +1,5 @@
+# Copy this file to terraform.tfvars and change the values.
+# terraform.tfvars is ignored by git, so personal settings stay on your PC.
+
+aws_region   = "us-east-1"
+project_name = "my-static-site"

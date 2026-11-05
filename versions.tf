@@ -1,0 +1,30 @@
+# Which Terraform version and which "providers" (plugins) this project needs.
+# A provider is how Terraform talks to a service - here, AWS.
+
+terraform {
+  required_version = ">= 1.5.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+
+  # These tags are added to every AWS resource this project creates,
+  # so you can always find (and clean up) what Terraform made.
+  default_tags {
+    tags = {
+      Project   = var.project_name
+      ManagedBy = "Terraform"
+    }
+  }
+}
