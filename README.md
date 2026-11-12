@@ -4,6 +4,13 @@ A beginner-friendly Terraform project that hosts a static website on **Amazon S3
 Every AWS resource is defined as code, so you can create the whole site with one
 command and delete it with another.
 
+## The app
+
+The site is a small **to-do list**: add tasks, tick them off, filter by
+All / Active / Done, and clear completed ones. It runs entirely in the browser,
+so tasks are saved in that browser's local storage - there is no server or
+database.
+
 ## What it creates
 
 | Resource | Purpose |
@@ -28,7 +35,8 @@ website/ ──terraform apply──▶ S3 bucket (website hosting on) ──▶
 ├── outputs.tf                # Prints the bucket name and website URL
 ├── terraform.tfvars.example  # Copy to terraform.tfvars to set your own values
 └── website/                  # The site itself - edit these files
-    ├── index.html
+    ├── index.html            # The to-do list page
+    ├── app.js                # The to-do list logic (runs in the browser)
     ├── error.html
     └── style.css
 ```
@@ -63,6 +71,20 @@ When it finishes, Terraform prints `website_url`. Open it in your browser.
 
 Edit any file in `website/`, then run `terraform apply` again. Only the changed
 files are re-uploaded.
+
+## App configuration
+
+Terraform also generates a small `config.json` from the `app_environment`,
+`app_version` and `welcome_message` variables and uploads it with the site. The
+home page loads that file and shows the values.
+
+To change a value, set it in `terraform.tfvars` (or pass it on the command line)
+and apply:
+
+```bash
+terraform plan -var "app_environment=test"
+terraform apply -var "app_environment=test"
+```
 
 ## Tear it down
 

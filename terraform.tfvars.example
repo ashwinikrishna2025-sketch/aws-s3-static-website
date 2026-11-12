@@ -3,3 +3,8 @@
 
 aws_region   = "us-east-1"
 project_name = "my-static-site"
+
+# App configuration shown on the site
+app_environment = "dev"
+app_version     = "1.0.0"
+welcome_message = "Configured by Terraform!"

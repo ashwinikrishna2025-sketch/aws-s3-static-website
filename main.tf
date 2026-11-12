@@ -91,4 +91,31 @@ resource "aws_s3_object" "site_files" {
 
   # The etag changes when the file changes, so Terraform re-uploads edited files.
   etag = filemd5("${local.website_dir}/${each.value}")
+
+  # Make browsers check for a newer version on every visit, so edits show up
+  # without a hard refresh.
+  cache_control = "no-cache"
+}
+
+# 6. App configuration. Terraform builds a small JSON file from the variables
+#    in variables.tf and uploads it next to the website. The page loads
+#    config.json in the browser and shows the values.
+locals {
+  app_config = {
+    environment     = var.app_environment
+    version         = var.app_version
+    welcome_message = var.welcome_message
+    region          = var.aws_region
+    bucket          = aws_s3_bucket.site.id
+  }
+}
+
+resource "aws_s3_object" "app_config" {
+  bucket       = aws_s3_bucket.site.id
+  key          = "config.json"
+  content      = jsonencode(local.app_config)
+  content_type = "application/json"
+
+  # Always fetch the latest config instead of a copy the browser saved earlier.
+  cache_control = "no-cache"
 }

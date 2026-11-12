@@ -9,3 +9,8 @@ output "website_url" {
   description = "Open this in your browser to see the site."
   value       = "http://${aws_s3_bucket_website_configuration.site.website_endpoint}"
 }
+
+output "app_config" {
+  description = "The settings written to config.json and shown on the site."
+  value       = local.app_config
+}
