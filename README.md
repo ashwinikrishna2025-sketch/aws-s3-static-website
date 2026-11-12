@@ -1,15 +1,49 @@
-# AWS S3 Static Website with Terraform
+# To-Do List on AWS S3, deployed with Terraform
 
-A beginner-friendly Terraform project that hosts a static website on **Amazon S3**.
-Every AWS resource is defined as code, so you can create the whole site with one
-command and delete it with another.
+[![Terraform checks](https://github.com/ashwinikrishna2025-sketch/aws-s3-static-website/actions/workflows/terraform.yml/badge.svg)](https://github.com/ashwinikrishna2025-sketch/aws-s3-static-website/actions/workflows/terraform.yml)
+
+A small to-do list web app hosted on **Amazon S3**, where every AWS resource is
+defined as code with **Terraform**. One command creates the whole site, another
+deletes it, and a change to a Terraform variable flows through to what the page
+shows.
+
+**Live demo:** <http://my-static-site-953910e1.s3-website-us-east-1.amazonaws.com>
+(use `http://` - S3 website endpoints do not support HTTPS)
+
+![The to-do list app running on S3](docs/screenshot.jpg)
+
+## What this project demonstrates
+
+- **Infrastructure as code** - the bucket, website hosting, access policy and
+  file uploads are all declared in Terraform, with no console clicks.
+- **Least-surprise public access** - public ACLs stay blocked; a bucket policy
+  grants read-only access to the site files and nothing else.
+- **Configuration flowing from infrastructure to the app** - Terraform variables
+  are rendered into a `config.json` that the page loads at runtime.
+- **Safe change workflow** - `fmt`, `validate`, `plan`, then `apply`, with changes
+  made on branches and merged through pull requests.
+- **Continuous integration** - a GitHub Actions workflow checks formatting and
+  validates the configuration on every push and pull request.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    dev[Developer] -->|terraform apply| tf[Terraform]
+    vars[variables.tf] --> tf
+    files[website/ files] --> tf
+    tf -->|creates and configures| bucket[(S3 bucket<br/>static website hosting)]
+    tf -->|uploads site files<br/>and config.json| bucket
+    visitor[Visitor's browser] -->|HTTP GET| bucket
+    bucket -->|index.html, app.js,<br/>style.css, config.json| visitor
+```
 
 ## The app
 
 The site is a small **to-do list**: add tasks, tick them off, filter by
 All / Active / Done, and clear completed ones. It runs entirely in the browser,
 so tasks are saved in that browser's local storage - there is no server or
-database.
+database. It is plain HTML, CSS and JavaScript with no build step.
 
 ## What it creates
 
@@ -19,20 +53,18 @@ database.
 | `aws_s3_bucket_website_configuration` | Turns on S3 static website hosting (`index.html` / `error.html`) |
 | `aws_s3_bucket_public_access_block` | Allows a public read policy, still blocks public ACLs |
 | `aws_s3_bucket_policy` | Lets anyone **read** (not change) the files |
-| `aws_s3_object` | Uploads everything in `website/` with the right content type |
-
-```
-website/ ──terraform apply──▶ S3 bucket (website hosting on) ──▶ http://<bucket>.s3-website-<region>.amazonaws.com
-```
+| `aws_s3_object` | Uploads everything in `website/` with the right content type, plus the generated `config.json` |
 
 ## Project layout
 
 ```
 .
+├── .github/workflows/        # CI: terraform fmt + validate on every push and PR
+├── docs/                     # Screenshot used in this README
 ├── versions.tf               # Terraform + provider versions, AWS provider settings
-├── variables.tf              # Inputs (region, project name)
-├── main.tf                   # The S3 bucket, website config, policy, file uploads
-├── outputs.tf                # Prints the bucket name and website URL
+├── variables.tf              # Inputs (region, project name, app settings)
+├── main.tf                   # The S3 bucket, website config, policy, file uploads, config.json
+├── outputs.tf                # Prints the bucket name, website URL and app config
 ├── terraform.tfvars.example  # Copy to terraform.tfvars to set your own values
 └── website/                  # The site itself - edit these files
     ├── index.html            # The to-do list page
@@ -110,10 +142,15 @@ when you're done experimenting.
 - **Site shows `403 Forbidden`** - wait a minute after `apply`; the policy can take
   a moment to apply.
 
-## Ideas for next steps
+## Continuous integration
 
-- Add **CloudFront** in front of the bucket for HTTPS and caching.
+`.github/workflows/terraform.yml` runs on every push to `main` and every pull
+request. It checks formatting with `terraform fmt -check` and correctness with
+`terraform validate`. It needs no AWS credentials and never deploys anything.
+
+## Possible next steps
+
+- Add **CloudFront** in front of the bucket for HTTPS and caching, and make the
+  bucket private.
 - Store Terraform state remotely in S3 so a team can share it.
-- Add a **GitHub Actions** workflow that runs `terraform fmt -check` and
-  `terraform validate` on every pull request.
 - Use a custom domain with **Route 53**.

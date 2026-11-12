@@ -1,0 +1,34 @@
+# Checks the Terraform code on every push to main and every pull request.
+# It never touches AWS: no credentials are needed and nothing is deployed.
+name: Terraform checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format and validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Fails if any .tf file is not formatted the standard way.
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff
+
+      # Downloads the providers only; -backend=false skips state entirely.
+      - name: terraform init
+        run: terraform init -backend=false -input=false
+
+      # Fails on syntax errors, wrong argument names and broken references.
+      - name: terraform validate
+        run: terraform validate -no-color
