@@ -44,3 +44,34 @@ variable "welcome_message" {
   type        = string
   default     = "Configured by Terraform!"
 }
+
+# --- Custom domain (optional) ---
+# Leave both empty to use the default S3 website address.
+# You must already own the domain; Terraform does not buy it for you.
+
+variable "domain_name" {
+  description = "Full address the site should answer on, e.g. \"www.example.com\". Empty = no custom domain."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.domain_name == "" || can(regex("^([a-z0-9]([a-z0-9-]*[a-z0-9])?[.])+[a-z]{2,}$", var.domain_name))
+    error_message = "domain_name must be a lowercase domain such as www.example.com (no http://, no trailing slash)."
+  }
+
+  validation {
+    condition     = var.domain_name == "" || var.hosted_zone_name != ""
+    error_message = "Set hosted_zone_name as well when domain_name is set."
+  }
+
+  validation {
+    condition     = var.domain_name == "" || var.domain_name == var.hosted_zone_name || endswith(var.domain_name, ".${var.hosted_zone_name}")
+    error_message = "domain_name must be the hosted zone's domain or a subdomain of it (e.g. www.example.com in example.com)."
+  }
+}
+
+variable "hosted_zone_name" {
+  description = "The domain you own, e.g. \"example.com\". A Route 53 hosted zone is created for it."
+  type        = string
+  default     = ""
+}
