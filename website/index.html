@@ -3,18 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My first AWS website</title>
+  <title>To-Do List</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-    <h1>Hello from AWS S3 👋</h1>
-    <p>This page is hosted in an Amazon S3 bucket that was created entirely with <strong>Terraform</strong>.</p>
-    <ul>
-      <li>Infrastructure as code: every AWS resource is defined in <code>.tf</code> files.</li>
-      <li>Edit this file, run <code>terraform apply</code>, and the change goes live.</li>
-      <li>Run <code>terraform destroy</code> and it is all cleaned up.</li>
-    </ul>
+    <header>
+      <h1>To-Do List</h1>
+      <p id="welcome" class="subtitle">&nbsp;</p>
+    </header>
+
+    <form id="add-form" autocomplete="off">
+      <input id="new-task" type="text" placeholder="What needs doing?" aria-label="New task" maxlength="200" required>
+      <button type="submit">Add</button>
+    </form>
+
+    <div class="toolbar">
+      <div class="filters" role="group" aria-label="Filter tasks">
+        <button type="button" data-filter="all" class="active">All</button>
+        <button type="button" data-filter="active">Active</button>
+        <button type="button" data-filter="done">Done</button>
+      </div>
+      <span id="count"></span>
+    </div>
+
+    <ul id="task-list"></ul>
+    <p id="empty" class="empty" hidden>Nothing here yet.</p>
+
+    <button id="clear-done" type="button" class="link" hidden>Clear completed</button>
+
+    <footer>
+      <p>Tasks are saved in this browser only.</p>
+      <p id="app-info"></p>
+    </footer>
   </main>
+
+  <script src="app.js"></script>
 </body>
 </html>

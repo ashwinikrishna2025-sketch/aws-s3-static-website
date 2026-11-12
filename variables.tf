@@ -17,3 +17,30 @@ variable "project_name" {
     error_message = "project_name must be 3-42 characters: lowercase letters, numbers and hyphens, not starting or ending with a hyphen."
   }
 }
+
+# --- App configuration ---
+# These values are written into config.json, which the website reads and shows.
+# Change one, run `terraform plan`, and you'll see exactly what would be updated.
+
+variable "app_environment" {
+  description = "Which environment this deployment is, shown on the site."
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "test", "prod"], var.app_environment)
+    error_message = "app_environment must be one of: dev, test, prod."
+  }
+}
+
+variable "app_version" {
+  description = "Version label shown on the site."
+  type        = string
+  default     = "1.0.0"
+}
+
+variable "welcome_message" {
+  description = "A short message shown on the home page."
+  type        = string
+  default     = "Configured by Terraform!"
+}
