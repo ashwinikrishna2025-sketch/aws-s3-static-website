@@ -22,6 +22,8 @@ shows.
   are rendered into a `config.json` that the page loads at runtime.
 - **Safe change workflow** - `fmt`, `validate`, `plan`, then `apply`, with changes
   made on branches and merged through pull requests.
+- **Remote state** - Terraform's state lives in a private, versioned, encrypted
+  S3 bucket with state locking, instead of a file on one machine.
 - **Continuous integration** - a GitHub Actions workflow checks formatting and
   validates the configuration on every push and pull request.
 
@@ -60,8 +62,9 @@ database. It is plain HTML, CSS and JavaScript with no build step.
 ```
 .
 ├── .github/workflows/        # CI: terraform fmt + validate on every push and PR
+├── bootstrap/                # One-time setup: creates the S3 bucket for Terraform state
 ├── docs/                     # Screenshot used in this README
-├── versions.tf               # Terraform + provider versions, AWS provider settings
+├── versions.tf               # Terraform + provider versions, state backend, AWS provider settings
 ├── variables.tf              # Inputs (region, project name, app settings)
 ├── main.tf                   # The S3 bucket, website config, policy, file uploads, config.json
 ├── outputs.tf                # Prints the bucket name, website URL and app config
@@ -76,7 +79,7 @@ database. It is plain HTML, CSS and JavaScript with no build step.
 ## Prerequisites
 
 1. An AWS account.
-2. [Terraform](https://developer.hashicorp.com/terraform/install) 1.5 or newer.
+2. [Terraform](https://developer.hashicorp.com/terraform/install) 1.10 or newer.
 3. AWS credentials on your machine. The easiest way is the
    [AWS CLI](https://aws.amazon.com/cli/) and `aws configure`, using an access key
    from an **IAM user** (not your root account) with S3 permissions.
@@ -84,16 +87,24 @@ database. It is plain HTML, CSS and JavaScript with no build step.
 ## Deploy
 
 ```bash
-# 1. (Optional) set your own name/region
+# 1. One time only: create the bucket that stores Terraform's state
+cd bootstrap
+terraform init
+terraform apply          # prints state_bucket_name
+cd ..
+
+# 2. Put that bucket name in the backend "s3" block in versions.tf
+
+# 3. (Optional) set your own name/region
 cp terraform.tfvars.example terraform.tfvars
 
-# 2. Download the AWS provider
+# 4. Download the AWS provider and connect to the state bucket
 terraform init
 
-# 3. Preview what will be created - nothing changes yet
+# 5. Preview what will be created - nothing changes yet
 terraform plan
 
-# 4. Create it (type "yes" when asked)
+# 6. Create it (type "yes" when asked)
 terraform apply
 ```
 
@@ -118,13 +129,31 @@ terraform plan -var "app_environment=test"
 terraform apply -var "app_environment=test"
 ```
 
+## Remote state
+
+Terraform records what it has created in a *state file*. Here that file is
+stored in S3 rather than on one machine:
+
+| Setting | Why |
+| --- | --- |
+| Separate, private bucket | State can contain sensitive values, so it is never public |
+| Versioning | Every earlier state is kept (for 90 days), so a bad change can be rolled back |
+| Encryption at rest | The file is encrypted in S3 |
+| `use_lockfile = true` | Locks the state during a command, so two runs can't collide |
+
+The state bucket is created by the small config in `bootstrap/`, which keeps its
+own state locally. It is deliberately separate: the main project can't create
+the bucket it stores its own state in.
+
 ## Tear it down
 
 ```bash
 terraform destroy
 ```
 
-This deletes the bucket and every file in it.
+This deletes the website bucket and every file in it. The state bucket is left
+in place on purpose (it has `prevent_destroy`); delete it from the S3 console if
+you want everything gone.
 
 ## Cost
 
@@ -152,5 +181,4 @@ request. It checks formatting with `terraform fmt -check` and correctness with
 
 - Add **CloudFront** in front of the bucket for HTTPS and caching, and make the
   bucket private.
-- Store Terraform state remotely in S3 so a team can share it.
 - Use a custom domain with **Route 53**.
