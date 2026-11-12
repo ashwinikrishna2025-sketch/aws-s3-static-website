@@ -55,6 +55,7 @@ database. It is plain HTML, CSS and JavaScript with no build step.
 | `aws_s3_bucket_website_configuration` | Turns on S3 static website hosting (`index.html` / `error.html`) |
 | `aws_s3_bucket_public_access_block` | Allows a public read policy, still blocks public ACLs |
 | `aws_s3_bucket_policy` | Lets anyone **read** (not change) the files |
+| `aws_route53_zone`, `aws_route53_record` | Optional: DNS zone and alias record for a custom domain (only when `domain_name` is set) |
 | `aws_s3_object` | Uploads everything in `website/` with the right content type, plus the generated `config.json` |
 
 ## Project layout
@@ -65,7 +66,7 @@ database. It is plain HTML, CSS and JavaScript with no build step.
 ├── bootstrap/                # One-time setup: creates the S3 bucket for Terraform state
 ├── docs/                     # Screenshot used in this README
 ├── versions.tf               # Terraform + provider versions, state backend, AWS provider settings
-├── variables.tf              # Inputs (region, project name, app settings)
+├── variables.tf              # Inputs (region, project name, app settings, optional domain)
 ├── main.tf                   # The S3 bucket, website config, policy, file uploads, config.json
 ├── outputs.tf                # Prints the bucket name, website URL and app config
 ├── terraform.tfvars.example  # Copy to terraform.tfvars to set your own values
@@ -129,6 +130,34 @@ terraform plan -var "app_environment=test"
 terraform apply -var "app_environment=test"
 ```
 
+## Custom domain (optional)
+
+By default the site uses its S3 website address. To serve it from a domain you
+already own, set two variables in `terraform.tfvars`:
+
+```hcl
+domain_name      = "www.example.com"   # the address visitors use
+hosted_zone_name = "example.com"       # the domain you own
+```
+
+Then `terraform apply`, which:
+
+1. Creates a **Route 53 hosted zone** for the domain.
+2. Renames the website bucket to match the domain - S3 website hosting requires
+   the bucket name to equal the domain name, so the bucket is replaced.
+3. Adds an **alias record** pointing the domain at the bucket's website endpoint.
+
+Finally, copy the `name_servers` output into your domain registrar's settings.
+DNS changes can take up to a day or two to spread.
+
+Things to know:
+
+- Terraform does not buy the domain; register it first (any registrar works).
+- A hosted zone costs about $0.50 per month.
+- The site is still HTTP only. HTTPS on a custom domain needs CloudFront.
+- This path is validated and planned in this repo but has not been applied to a
+  real domain.
+
 ## Remote state
 
 Terraform records what it has created in a *state file*. Here that file is
@@ -181,4 +210,3 @@ request. It checks formatting with `terraform fmt -check` and correctness with
 
 - Add **CloudFront** in front of the bucket for HTTPS and caching, and make the
   bucket private.
-- Use a custom domain with **Route 53**.

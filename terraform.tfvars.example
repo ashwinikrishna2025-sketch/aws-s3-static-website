@@ -8,3 +8,8 @@ project_name = "my-static-site"
 app_environment = "dev"
 app_version     = "1.0.0"
 welcome_message = "Configured by Terraform!"
+
+# Optional custom domain (you must already own it). Leave commented out to
+# use the default S3 website address.
+# domain_name      = "www.example.com"
+# hosted_zone_name = "example.com"

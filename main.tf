@@ -6,8 +6,17 @@ resource "random_id" "suffix" {
 }
 
 # 1. The bucket that stores the website files.
+locals {
+  use_custom_domain = var.domain_name != ""
+
+  # For S3 website hosting on a custom domain, AWS requires the bucket to be
+  # named EXACTLY like the domain (e.g. "www.example.com"). Without a custom
+  # domain we use the project name plus the random suffix.
+  bucket_name = local.use_custom_domain ? var.domain_name : "${var.project_name}-${random_id.suffix.hex}"
+}
+
 resource "aws_s3_bucket" "site" {
-  bucket = "${var.project_name}-${random_id.suffix.hex}"
+  bucket = local.bucket_name
 
   # Lets `terraform destroy` delete the bucket even if it still has files in it.
   force_destroy = true
@@ -118,4 +127,34 @@ resource "aws_s3_object" "app_config" {
 
   # Always fetch the latest config instead of a copy the browser saved earlier.
   cache_control = "no-cache"
+}
+
+# 7. Optional: a custom domain with Route 53 (AWS's DNS service).
+#    Everything below is skipped unless domain_name is set.
+#
+#    A "hosted zone" holds the DNS records for a domain you own. After it is
+#    created, copy the name servers Terraform prints into your domain
+#    registrar's settings so the internet knows to ask Route 53.
+resource "aws_route53_zone" "site" {
+  count = local.use_custom_domain ? 1 : 0
+
+  name = var.hosted_zone_name
+}
+
+# The DNS record that points the domain at the bucket's website endpoint.
+# An "alias" record is Route 53's way of pointing at an AWS resource; unlike a
+# normal record it is free to query and also works for a bare domain
+# (example.com with no www).
+resource "aws_route53_record" "site" {
+  count = local.use_custom_domain ? 1 : 0
+
+  zone_id = aws_route53_zone.site[0].zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_s3_bucket_website_configuration.site.website_domain
+    zone_id                = aws_s3_bucket.site.hosted_zone_id
+    evaluate_target_health = false
+  }
 }
